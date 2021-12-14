@@ -8,7 +8,6 @@ import {Setting} from "./feature/setting";
   template: `
       <ng-container [ngSwitch]="nodeType">
           <app-group *ngSwitchCase="nodeTypeEnum.Group" [group]="group"></app-group>
-          <app-setting *ngSwitchCase="nodeTypeEnum.Setting" [setting]="setting"></app-setting>
       </ng-container>
 
   `,
@@ -30,11 +29,6 @@ export class TreeItemComponent {
 
   get group(): Group {
     return this.node?.behaviour as Group;
-  }
-
-
-  get setting(): Setting {
-    return this.node?.behaviour as Setting;
   }
 }
 

@@ -1,45 +1,64 @@
-import {TreeBehaviour, TreeEvent} from "./tree";
-import {BehaviourBase} from "./behaviour-base";
-import {GroupCheckedEvent, SettingCheckedEvent} from "./events";
+import {ChangeNotificator} from "./change-notificator";
+import {Group} from "./group";
 
-export class Setting extends BehaviourBase implements TreeBehaviour {
+export class Setting {
 
+  readonly changeNotificator = new ChangeNotificator();
   private _checked: boolean = false;
+  private _disabled: boolean = false;
+  private _group?: Group;
 
   constructor(public readonly key: string) {
-    super();
   }
 
   get checked(): boolean {
     return this._checked;
   }
 
-  receiveParentEvent(event: TreeEvent): void {
-    console.log(this.key, 'setting receiveEvent', event);
-    if (event instanceof GroupCheckedEvent) {
-      this.setCheckedInner(event.checked, false);
-      return;
-    }
-
-    throw new Error();
+  set disabled(value: boolean) {
+    this._disabled = value;
+    this.changeNotificator.notifyChanged();
   }
 
-  receiveChildrenEvent(event: TreeEvent): void {
+  get disabled(): boolean {
+    return this._disabled;
+  }
 
-    throw new Error();
+  get group(): Group {
+    if (this._group == null) {
+      throw new Error('this._node == null')
+    }
+
+    return this._group;
+  }
+
+  setGroup(group: Group): void {
+    if (this._group != null) {
+      throw new Error('Group already set')
+    }
+
+    this._group = group;
   }
 
   setChecked(checked: boolean): void {
     this.setCheckedInner(checked, true);
   }
 
-  private setCheckedInner(checked: boolean, notifyParent: boolean): void {
+  handleGroupChecked(checked: boolean): void {
+    if (this._disabled) {
+      return;
+    }
+
+    this.setCheckedInner(checked, false);
+  }
+
+  private setCheckedInner(checked: boolean, notifyGroup: boolean): void {
     this._checked = checked;
 
-    this.notifyChanged();
+    this.changeNotificator.notifyChanged();
 
-    if (notifyParent) {
-      this.node.emitEventToParent(new SettingCheckedEvent(checked));
+    if (notifyGroup) {
+      this.group.handleSettingChecked(this.key, checked);
     }
   }
 

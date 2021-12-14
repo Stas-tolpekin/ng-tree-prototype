@@ -1,16 +1,21 @@
-import {TreeBehaviour, TreeEvent} from "./tree";
+import {BasicTreeNodeHolder, TreeBehaviour, TreeEvent} from "./tree";
 import {reduceIterable} from "./iterable-utils";
 import {Setting} from "./setting";
-import {BehaviourBase} from "./behaviour-base";
-import {GroupCheckedEvent, SettingCheckedEvent} from "./events";
+import {GroupCheckedEvent, SettingInGroupCheckedEvent} from "./events";
+import {ChangeNotificator} from "./change-notificator";
 
-export class Group extends BehaviourBase implements TreeBehaviour {
+export class Group extends BasicTreeNodeHolder implements TreeBehaviour {
 
+  readonly changeNotificator = new ChangeNotificator();
   private _checked: boolean = false;
   private _indeterminate: boolean = false;
+  private readonly _settings: Setting[];
 
-  constructor(public readonly key: string) {
+  constructor(public readonly key: string, settings: Setting[]) {
     super();
+
+    this._settings = settings;
+    this._settings.forEach(item => item.setGroup(this));
   }
 
   get checked(): boolean {
@@ -21,16 +26,26 @@ export class Group extends BehaviourBase implements TreeBehaviour {
     return this._indeterminate;
   }
 
+  get settings(): ReadonlyArray<Setting> {
+    return this._settings;
+  }
+
+  handleSettingChecked(key: string, checked: boolean): void {
+    console.log(this.key, 'handleSettingChecked', key, checked);
+    this.lookupChildren();
+  }
+
   receiveParentEvent(event: TreeEvent): void {
     console.log(this.key, 'group receiveParentEvent', event);
-    if (event instanceof SettingCheckedEvent) {
+
+    if (event instanceof GroupCheckedEvent) {
+      this.setAllSettingsChecked(event.checked);
       this.setCheckedInner(event.checked, false, true, false);
       return;
     }
 
-    if (event instanceof GroupCheckedEvent) {
-      this.setCheckedInner(event.checked, false, true, false);
-      return;
+    if (event instanceof SettingInGroupCheckedEvent){
+
     }
 
     throw new Error();
@@ -38,10 +53,6 @@ export class Group extends BehaviourBase implements TreeBehaviour {
 
   receiveChildrenEvent(event: TreeEvent): void {
     console.log(this.key, 'group receiveChildrenEvent', event);
-    if (event instanceof SettingCheckedEvent) {
-      this.lookupChildren();
-      return;
-    }
 
     if (event instanceof GroupCheckedEvent) {
       this.lookupChildren();
@@ -52,7 +63,17 @@ export class Group extends BehaviourBase implements TreeBehaviour {
   }
 
   setChecked(checked: boolean): void {
+    this.setAllSettingsChecked(checked);
     this.setCheckedInner(checked, false, true, true);
+  }
+
+  private setAllSettingsChecked(checked: boolean): void {
+    this._settings.forEach(item => {
+      if (item.checked !== checked){
+        item.handleGroupChecked(checked);
+        this.node.emitEventToChildren(new SettingInGroupCheckedEvent(checked, item.key))
+      }
+    });
   }
 
   private setCheckedInner(
@@ -64,7 +85,7 @@ export class Group extends BehaviourBase implements TreeBehaviour {
     this._checked = checked;
     this._indeterminate = indeterminate;
 
-    this.notifyChanged();
+    this.changeNotificator.notifyChanged();
 
     if (notifyChildren) {
       this.node.emitEventToChildren(new GroupCheckedEvent(checked));
@@ -76,14 +97,16 @@ export class Group extends BehaviourBase implements TreeBehaviour {
   }
 
   private lookupChildren(): void {
-    const checkedCount = this.countCheckedChildren();
+    const checkedCount = this.countCheckedItems();
+    const totalCount = this.node.children.length + this.settings.length;
+    console.log('lookupChildren', checkedCount, totalCount)
 
     if (checkedCount === 0) {
       this.setCheckedInner(false, false, false, true);
       return;
     }
 
-    if (checkedCount === this.node.children.length) {
+    if (checkedCount === totalCount) {
       this.setCheckedInner(true, false, false, true);
       return;
     }
@@ -91,15 +114,12 @@ export class Group extends BehaviourBase implements TreeBehaviour {
     this.setCheckedInner(false, true, false, true);
   }
 
-  private countCheckedChildren(): number {
-    return reduceIterable(
+  private countCheckedItems(): number {
+    const checkedGroups: number = reduceIterable(
       this.node.childrenBehaviours,
       (result, item) => {
         let stateNum: number = 0;
 
-        if (item instanceof Setting) {
-          stateNum = getStateNum(item.checked, false);
-        }
         if (item instanceof Group) {
           stateNum = getStateNum(item.checked, item.indeterminate);
         }
@@ -107,7 +127,15 @@ export class Group extends BehaviourBase implements TreeBehaviour {
         return result + stateNum;
       },
       0,
-    );
+    )
+
+    const checkedSettings: number = this._settings.reduce(
+      (count, item) =>
+        count + (item.checked ? 1 : 0),
+      0,
+    )
+
+    return checkedGroups + checkedSettings;
   }
 
 

@@ -2,6 +2,7 @@ import {ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnDestroy}
 import {Group} from "./feature/group";
 import {TreeNode} from "./feature/tree";
 import {ChangeManager} from "./change-manager";
+import {Setting} from "./feature/setting";
 
 @Component({
   selector: 'app-group',
@@ -14,6 +15,10 @@ import {ChangeManager} from "./change-manager";
           <button (click)="expand = !expand">expand/collapse</button>
       </span>
       <ul *ngIf="expand">
+          <li *ngFor="let item of settings">
+              <app-setting [setting]="item"></app-setting>
+          </li>
+          
           <li *ngFor="let node of children">
               <app-tree-item [node]="node"></app-tree-item>
           </li>
@@ -41,11 +46,15 @@ export class GroupComponent implements OnDestroy {
   @Input()
   set group(value: Group | null) {
     this._group = value;
-    this.changeManager.subscribeChange(value?.changed);
+    this.changeManager.subscribeChange(value?.changeNotificator.changed);
   }
 
   get children(): ReadonlyArray<TreeNode> {
     return this._group?.node.children ?? [];
+  }
+
+  get settings(): ReadonlyArray<Setting> {
+    return this._group?.settings ?? [];
   }
 
   ngOnDestroy(): void {

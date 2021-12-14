@@ -27,7 +27,7 @@ export class SettingComponent implements OnDestroy {
   @Input()
   set setting(value: Setting | null) {
     this._setting = value;
-    this.changeManager.subscribeChange(value?.changed);
+    this.changeManager.subscribeChange(value?.changeNotificator.changed);
   }
 
   ngOnDestroy(): void {
