@@ -48,10 +48,14 @@ export class TreeNode {
 
   emitEventToParent(event: TreeEvent): void {
     this._parent?._behaviour.receiveChildrenEvent(event);
+    console.log('emitEventToParent', event, this, this._parent);
   }
 
   emitEventToChildren(event: TreeEvent): void {
-    this._children.forEach(node => node._behaviour.receiveParentEvent(event));
+    this._children.forEach(node => {
+      node._behaviour.receiveParentEvent(event);
+      console.log('emitEventToChildren', event, this, node);
+    });
   }
 
   private setParent(node: TreeNode | null): void {

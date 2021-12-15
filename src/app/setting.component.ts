@@ -5,7 +5,12 @@ import {ChangeManager} from "./change-manager";
 @Component({
   selector: 'app-setting',
   template: `<span *ngIf="setting">setting {{setting.key}} - <input type="checkbox" (change)="changeChecked($event)"
-                                                                    [checked]="setting.checked"/></span>
+                                                                    [checked]="setting.checked"
+                                                                    [disabled]="setting.disabled"/>
+  d:{{setting.disabled}} | c:{{setting.checked}}
+  </span>
+  
+  
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

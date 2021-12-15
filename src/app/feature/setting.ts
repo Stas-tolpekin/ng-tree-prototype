@@ -17,6 +17,9 @@ export class Setting {
 
   set disabled(value: boolean) {
     this._disabled = value;
+    if (value){
+      this._checked = false;
+    }
     this.changeNotificator.notifyChanged();
   }
 
@@ -45,11 +48,7 @@ export class Setting {
   }
 
   handleGroupChecked(checked: boolean): void {
-    if (this._disabled) {
-      return;
-    }
-
-    this.setCheckedInner(checked, false);
+    this.setCheckedInner(this.disabled ? false : checked, false);
   }
 
   private setCheckedInner(checked: boolean, notifyGroup: boolean): void {

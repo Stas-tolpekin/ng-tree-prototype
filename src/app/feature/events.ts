@@ -1,9 +1,8 @@
 import {TreeEvent} from "./tree";
 
-export class SettingInGroupCheckedEvent implements TreeEvent {
+export class SettingInGroupChangedEvent implements TreeEvent {
   constructor(
-    public readonly checked: boolean,
-    public readonly settingKey: string,
+    public readonly uncheckedKeys: string[],
   ) {
   }
 }
